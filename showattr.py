@@ -1,6 +1,35 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""Diagnose the information of attributes which you want to access.
+
+This is done by simulating the "Attribute access method" you specify, while
+performing exactly the same "Attribute access algorithms" as Python 2.7 do internally.
+
+For example, if you want to get the attribute named `attr` via instance `a`:
+
+    a.attr
+
+By doing this:
+
+    showattr(a, 'attr', 'get')
+
+You will get the information of the actual object referenced by `a.attr` in this format:
+
+    (type, location)
+
+It's helpful either to understand the internal behaviour in Python or to debug
+unexpected problems you encountered.
+
+Attribute access | Diagnose command
+---------------- | ------------------------------------------------------
+obj.attr         | showattr(obj, 'attr', 'get') <=> showattr(obj, 'attr')
+obj.attr = value | showattr(obj, 'attr', 'set')
+del obj.attr     | showattr(obj, 'attr', 'del')
+
+Note: `obj` must be a new-style instance or class.
+"""
+
 import types
 import inspect
 
@@ -8,21 +37,21 @@ def showattr(obj, name, method='get'):
     """Show (type, location) of attribute named `name`, after trying to
        access (method specified by `method`) the attribute via object `obj`.
 
-        type                | meaning
-        ------------------- | -----------------------------------------------------------
-        attribute           | `treated as` normal attribute (returned directly)
-        get descriptor      | descriptor has __get__ (which will be called)
-        set descriptor      | descriptor has __set__ or __delete__ (which will be called)
-        non-data descriptor | get descriptor, but not set descriptor
-        data descriptor     | get descriptor, and also set descriptor
+    type                | meaning
+    ------------------- | -----------------------------------------------------------
+    attribute           | `treated as` normal attribute (returned directly)
+    get descriptor      | descriptor has __get__ (which will be called)
+    set descriptor      | descriptor has __set__ or __delete__ (which will be called)
+    non-data descriptor | get descriptor, but not set descriptor
+    data descriptor     | get descriptor, and also set descriptor
 
-        Note:
-            `treated as` means: an object is processed as a normal attribute
-                                *semantically* even if it looks like a valid descriptor.
+    Note:
+        `treated as` means: an object is processed as a normal attribute
+                            *semantically* even if it looks like a valid descriptor.
 
-             A typical example is: "descriptor" within instance dictionary is `treated as` a normal attribute.
+        A typical example is: "descriptor" within instance dictionary is `treated as` a normal attribute.
 
-             For more details, see http://www.cnblogs.com/russellluo/p/3414943.html
+        For more details, see http://www.cnblogs.com/russellluo/p/3414943.html
     """
     assert isnewstyle(obj), \
            '`obj` must be a new-style instance or class'
@@ -43,10 +72,9 @@ def showattr(obj, name, method='get'):
             'set': setattr_via_instance,
             'del': delattr_via_instance
         }
-    target = route.get(method, None)
-    if target is not None:
-        info = target(obj, name)
-        print(info)
+
+    target = route.get(method)
+    return target(obj, name)
 
 def getattr_via_class(cls, name):
     """Get attribute named `name` via class `cls`.
